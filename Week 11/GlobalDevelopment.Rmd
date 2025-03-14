@@ -1,11 +1,11 @@
 ---
 title: "Make Countries Move"
-author: "Adela Sobotkova"
+author: "Anton Bach Møller"
 date: "05/1/2025"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -79,7 +79,7 @@ The black bubbles are a bit hard to read, the comparison would be easier with a 
 
 2. *Answer: In Figure 1: Who is the outlier (the richest country in 1952) far right on the x axis?* 
 The following code should show a table with the richest countries in descending order with the single most prosporus/the outlier being kuwait who is a whole order of magnitude richer in terms of gdp per capita.
-```{r}
+```{ra}
 # Filter the data for the year 1952
 gapminder_1952 <- gapminder %>% filter(year == 1952)
 
@@ -91,7 +91,7 @@ head(gapminder_1952_sorted)
 ```
 
 3. *Fix Figures 1 and 2: Differentiate the **continents** by color, and fix the axis labels and units to be more legible (**Hint**: the 2.50e+08 is so called "scientific notation". You want to eliminate it.)*
-```{r}
+```{rb}
 # Load the scales package for formatting
 library(scales)
 
@@ -103,7 +103,7 @@ ggplot(subset(gapminder, year == 1952), aes(gdpPercap, lifeExp, size = pop)) +
   ggtitle("Figure 01: 1952") +
   labs(x = "GDP per Capita (log scale)", y = "Life Expectancy", size = "Population")
 ```
-```{r}
+```{rc}
 # Plot for 1952 with continents colored and scientific notation removed
 ggplot(subset(gapminder, year == 1952), aes(gdpPercap, lifeExp, size = pop, color = continent)) +
   geom_point(alpha = 0.7) +  # Add transparency to make overlapping points visible
@@ -115,7 +115,7 @@ ggplot(subset(gapminder, year == 1952), aes(gdpPercap, lifeExp, size = pop, colo
 
 
 4. *Answer: What are the five richest countries in the world in 2007?*
-```{r}
+```{rd}
 # Filter the data for the year 1952
 gapminder_2007 <- gapminder %>% filter(year == 2007)
 
@@ -137,7 +137,7 @@ Also, there are *two* ways of animating the gapminder ggplot.
 ### Option 1: Animate using transition_states() 
 
 The first step is to create the object-to-be-animated
-```{r anim1 start}
+```{r anim1 starte}
 anim <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop)) +
   geom_point() +
   scale_x_log10()  # convert x to log scale
@@ -148,7 +148,7 @@ anim
 
 This plot collates all the points across time. The next step is to split it into years and animate it. This may take some time, depending on the processing power of your computer (and other things you are asking it to do). Beware that the animation might appear in the bottom right 'Viewer' pane, not in this rmd preview. You need to `knit` the document to get the visual inside an html file.
 
-```{r anim1}
+```{r anim1f}
 anim + transition_states(year, 
                       transition_length = 1,
                       state_length = 1)
@@ -162,7 +162,7 @@ Notice how the animation moves jerkily, 'jumping' from one year to the next 12 t
 ### Option 2 Animate using transition_time()
 This option smooths the transition between different 'frames', because it interpolates and adds transitional years where there are gaps in the timeseries data.
 
-```{r anim2}
+```{r anim2g}
 anim2 <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop)) +
   geom_point() +
   scale_x_log10() + # convert x to log scale
@@ -181,7 +181,7 @@ Now, choose one of the animation options and get it to work. You may need to tro
 
 #to add a title to the previous animations I will use a function for each
  
-```{r anim1}
+```{r anim1h}
 anim <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, color = continent)) +
   geom_point(alpha = 0.7) +
   scale_x_log10() +
@@ -199,7 +199,7 @@ anim <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, color = continent)
 anim
 ```
 
-```{r anim2}
+```{r anim2i}
 anim2 <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, color = continent)) +
   geom_point(alpha = 0.7) +
   scale_x_log10() +
@@ -223,7 +223,7 @@ anim2
 
 #I had kept the colouring from question 3 throughout, I am mostly just typing labels out
 
-```{r anim1}
+```{r anim1j}
 anim <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, color = continent)) +
   geom_point(alpha = 0.7) +
   scale_x_log10(labels = scales::label_number()) +  # Remove scientific notation on x-axis
@@ -242,7 +242,7 @@ anim <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, color = continent)
 anim
 ```
 
-```{r anim2}
+```{r anim2k}
 anim2 <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, color = continent)) +
   geom_point(alpha = 0.7) +
   scale_x_log10(labels = scales::label_number()) +  # Remove scientific notation on x-axis
@@ -264,14 +264,14 @@ anim2
 ### Final Question
 7. **Is the world a better place today than it was in the year you were born?** *Answer this question using the gapminder data.  Define better either as more prosperous, more free, more healthy, or suggest another measure that you can get from gapminder. Submit a 250 word answer with an illustration to Brightspace. Include a URL in your Brightspace submission that links to the coded solutions in Github. [Hint: if you wish to have more data than is in the filtered gapminder, you can load either the `gapminder_unfiltered` dataset or download more historical data at https://www.gapminder.org/data/ ]*
 
-```{r anim1}
+```{r anim1l}
 # Load the additional life expectancy data
 life_expectancy <- read.csv("C:/Users/Anton/OneDrive/Skrivebord/Rstudio 2025/data/life_expectancy.csv")
 
 # View the first few rows of the data
 head(life_expectancy)
 ```
-```{r anim1}
+```{r anim1m}
 # View the first few rows of the data
 head(life_expectancy)
 
@@ -292,7 +292,7 @@ colnames(life_expectancy)
 str(life_expectancy)
 ```
 
-```{r anim1}
+```{r anim1n}
 # View the first few rows of the data
 head(life_expectancy)
 
@@ -306,7 +306,7 @@ str(life_expectancy)
 
 #The following code reformats the data, only preserving two columns, year and lifexpectancy. So we lose the data of gdp etc since it is now in a "long" format instead of "wide".
 
-```{r anim1}
+```{r anim1o}
 # Reshape the data from wide to long format
 life_expectancy_long <- life_expectancy %>%
   pivot_longer(
@@ -321,7 +321,7 @@ head(life_expectancy_long)
 
 #Now I remove the "X" that had been preventing me from using the original dataset. The "x" makes Rstudio recognise the column as charecters which prevents me from analysing.
 
-```{r anim1}
+```{r anim1p}
 # Remove the "X" prefix and convert the year column to numeric
 life_expectancy_long <- life_expectancy_long %>%
   mutate(year = as.numeric(sub("X", "", year)))
@@ -332,7 +332,7 @@ head(life_expectancy_long)
 
 #I am only interested in the data from 2000, the year I was born, to 2025 current year.
 
-```{r anim1}
+```{r anim1q}
 # Filter the data for 2000 to 2025
 life_expectancy_2000_2025 <- life_expectancy_long %>% filter(year >= 2000 & year <= 2025)
 
@@ -342,7 +342,7 @@ head(life_expectancy_2000_2025)
 
 #Next we calculate the average lifespan of the global population from 2000 to 2025, as can be seen after running the code below, the global average lifespan is steadily increasing. There are some minor hicups though I wonder if a certain global pandemic had anything to do with the decline from 2019 to 2021.
 
-```{r anim1}
+```{r anim1r}
 # Calculate average life expectancy for each year from 2000 to 2025
 avg_life_exp <- life_expectancy_2000_2025 %>%
   group_by(year) %>%
@@ -353,7 +353,7 @@ avg_life_exp
 ```
 
 #Time to put an 
-```{r anim1}
+```{r anim1s}
 # Line plot of average life expectancy from 2000 to 2025
 ggplot(avg_life_exp, aes(x = year, y = avg_life_exp)) +
   geom_line(color = "blue", size = 1) +  # Add a blue line
@@ -371,7 +371,7 @@ ggplot(avg_life_exp, aes(x = year, y = avg_life_exp)) +
 
 #below is the code I used to save the image to put into word
 
-```{r anim1}
+```{r anim1t}
 # Create the plot
 plot <- ggplot(avg_life_exp, aes(x = year, y = avg_life_exp)) +
   geom_line(color = "blue", size = 1) +  # Add a blue line
@@ -388,7 +388,7 @@ plot <- ggplot(avg_life_exp, aes(x = year, y = avg_life_exp)) +
 print(plot)
 ```
 
-```{r anim1}
+```{r anim1u}
 # Save the plot as a PNG file
 ggsave("life_expectancy_2000_2025.png", plot, width = 10, height = 6, dpi = 300)
 ```
