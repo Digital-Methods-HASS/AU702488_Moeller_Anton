@@ -1,0 +1,267 @@
+---
+title: "Analyse af dansk tekst"
+output: html_document
+date: "`r format(Sys.Date(), '%d/%m/%Y')`"
+---
+```{r get-document2}
+
+# ----- SETUP (WITH ENCODING FIXES) -----
+Sys.setlocale(locale = "da_DK.UTF-8")  # Force Danish locale
+options(encoding = "UTF-8")
+library(tidyverse)
+library(pdftools)
+library(tidytext)
+library(ggwordcloud)
+library(here)
+# 1. CUSTOM LEXICON - Edit these values as needed
+custom_lexicon <- tribble(
+  ~word,       ~value,
+  # Negative terms
+  "sygdom",    -3,
+  "epidemi",   -2,
+  "død",       -4,
+  "størst",  -3,
+  "slet",  -2,
+  "slette",  -3,
+  # Positive terms
+  "helbred",    3,
+  "bedring",    3,
+  "sundhed",    3,
+
+) %>% 
+  bind_rows(
+    read.table(
+      "https://raw.githubusercontent.com/fnielsen/afinn/master/afinn/data/AFINN-da-32.txt",
+      sep = "\t", col.names = c("word", "value"),
+      encoding = "UTF-8"
+    )
+  )
+
+# 2. ROBUST FILE READING
+read_report <- function(file) {
+  text <- readLines(file, encoding = "UTF-8", warn = FALSE) %>% 
+    paste(collapse = " ") %>%
+    str_remove_all("<[^>]+>") %>%
+    str_replace_all("\\s+", " ") %>%
+    str_trim()
+  
+  year <- str_extract(basename(file), "188[0-9]") %>% as.integer()
+  tibble(year = year, text = text)
+}
+
+# 3. PROCESS FILES WITH ERROR HANDLING
+report_files <- list.files(
+  path = here("data", "medicinalrapporter"),
+  pattern = "188[0-9].*\\.txt$",
+  full.names = TRUE
+)
+
+report_data <- map_dfr(report_files, ~tryCatch(
+  read_report(.x),
+  error = function(e) {
+    message("Skipping ", basename(.x), ": ", e$message)
+    NULL
+  }
+))
+
+# 4. SENTIMENT ANALYSIS (FIXED)
+yearly_sentiment <- report_data %>%
+  mutate(
+    words = map(text, ~unnest_tokens(tibble(text = .x), word, text))
+  ) %>%
+  unnest(words) %>%
+  inner_join(custom_lexicon, by = "word") %>%
+  group_by(year) %>%
+  summarize(
+    avg_sentiment = mean(value),
+    total_words = n(),
+    .groups = "drop"
+  ) %>%
+  filter(!is.na(year))  # Remove any NA years
+
+# 5. FIXED SENTIMENT PLOT
+ggplot(yearly_sentiment, aes(x = factor(year), y = avg_sentiment, 
+                           fill = avg_sentiment)) +
+  geom_col(width = 0.7) +
+  geom_text(
+    aes(label = sprintf("%.2f", avg_sentiment)),
+    vjust = ifelse(yearly_sentiment$avg_sentiment > 0, -0.5, 1.2),
+    size = 4
+  ) +
+  scale_fill_gradient2(
+    low = "#d7191c", mid = "#ffffbf", high = "#1a9641",
+    midpoint = 0,
+    guide = "none"
+  ) +
+  labs(
+    title = "Århus Medical Reports Sentiment (1880-1889)",
+    x = "Year",
+    y = "Average Sentiment Score"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# 6. TOP WORDS BY YEAR (FIXED OUTPUT)
+top_words <- report_data %>%
+  mutate(
+    words = map(text, ~unnest_tokens(tibble(text = .x), word, text))
+  ) %>%
+  unnest(words) %>%
+  inner_join(custom_lexicon, by = "word") %>%
+  group_by(year, word) %>%
+  summarize(
+    count = n(),
+    total_impact = sum(value),
+    .groups = "drop_last"
+  ) %>%
+  arrange(year, desc(abs(total_impact))) %>%
+  slice_head(n = 10) %>%
+  ungroup()
+
+# Print formatted tables
+walk(split(top_words, top_words$year), ~{
+  cat("\n=== Year:", .x$year[1], "===\n")
+  print(.x %>% select(word, count, total_impact))
+  cat("\n")
+})
+```
+
+
+```{r get-document2}
+# ----- SETUP (WITH ENCODING FIXES) -----
+Sys.setlocale(locale = "da_DK.UTF-8")  # Force Danish locale
+options(encoding = "UTF-8")
+library(tidyverse)
+library(pdftools)
+library(tidytext)
+library(ggwordcloud)
+library(here)
+
+# ----- IMPROVED FILE PROCESSING -----
+clean_danish_text <- function(text) {
+  text %>%
+    # Remove HTML/XML tags (including problematic <a> tags)
+    str_remove_all("<[^>]+>") %>%
+    # Fix common OCR errors in Danish
+    str_replace_all("æ", "æ") %>%  # Ensure proper æ
+    str_replace_all("ø", "ø") %>%  # Ensure proper ø
+    str_replace_all("å", "å") %>%  # Ensure proper å
+    # Normalize historic spellings
+    str_replace_all("paa", "på") %>%
+    str_replace_all("oe", "ø") %>%
+    # Remove URLs
+    str_remove_all("https?://\\S+") %>%
+    # Normalize whitespace
+    str_replace_all("\\s+", " ")
+}
+
+# ----- LOAD RESOURCES -----
+# Robust stopword loading
+danish_stopwords <- readLines(
+  here("data", "stopwordlistDK_basic.txt"),
+  encoding = "UTF-8",
+  warn = FALSE
+) %>% 
+  str_trim() %>% 
+  c(., "")  # Add missing final line
+
+# Sentiment lexicon - COMBINED OFFICIAL AND CUSTOM
+danish_afinn <- tribble(
+  ~word,       ~value,
+  # Negative terms
+  "sygdom",    -3,
+  "epidemi",   -2,
+  "død",       -4,
+  "størst",    -3,
+  "slet",      -2,
+  "slette",    -3,
+  # Positive terms
+  "helbred",    3,
+  "bedring",    3,
+  "sundhed",    3
+) %>% 
+  bind_rows(
+    read.table(
+      "https://raw.githubusercontent.com/fnielsen/afinn/master/afinn/data/AFINN-da-32.txt",
+      sep = "\t", col.names = c("word", "value"),
+      encoding = "UTF-8"
+    )
+  ) %>%
+  mutate(word = str_to_lower(word)) %>%
+  distinct(word, .keep_all = TRUE)  # Ensure no duplicates (custom takes precedence)
+
+# ----- PROCESS FILES -----
+process_file <- function(file) {
+  # Read with proper encoding
+  text <- if (str_detect(file, "\\.pdf$")) {
+    pdf_text(file) %>% paste(collapse = " ")
+  } else {
+    readLines(file, encoding = "UTF-8") %>% paste(collapse = " ")
+  }
+  
+  tibble(
+    filename = basename(file),
+    text = clean_danish_text(text)  # Apply cleaning
+  ) %>%
+    unnest_tokens(word, text) %>%
+    anti_join(tibble(word = danish_stopwords), by = "word") %>%
+    filter(
+      !str_detect(word, "^\\d+$"),  # Remove numbers
+      nchar(word) > 2,              # Remove short words
+      str_detect(word, "[æøåa-z]")  # Keep only Danish/Latin words
+    )
+}
+
+# Get all files
+all_files <- list.files(
+  path = here("data"),
+  pattern = "\\.(pdf|txt)$",
+  full.names = TRUE
+) %>%
+  set_names()  # For better ID handling
+
+# Process all files
+all_texts <- map_df(all_files, process_file, .id = "doc_id")
+
+# ----- ANALYSIS -----
+# 1. Word frequencies (unchanged)
+word_counts <- all_texts %>%
+  count(filename, word, sort = TRUE)
+
+# 2. Sentiment analysis (using COMBINED lexicon)
+sentiment_results <- all_texts %>%
+  mutate(word = str_to_lower(word)) %>%
+  inner_join(danish_afinn, by = "word")  # Now using the combined lexicon
+
+# ----- VISUALIZATION FIXES -----
+# 1. Word cloud (with HTML tag protection)
+if (nrow(word_counts) > 0) {
+  set.seed(42)
+  word_plot <- word_counts %>%
+    group_by(word) %>%
+    summarize(n = sum(n)) %>%
+    filter(n > 3, !str_detect(word, "<|>")) %>%  # Exclude HTML artifacts
+    slice_max(n, n = 30) %>%
+    ggplot(aes(label = word, size = n)) +
+    geom_text_wordcloud(rm_outside = TRUE) +  # Simpler version
+    scale_size_area(max_size = 12) +
+    theme_minimal()
+  
+  print(word_plot)
+}
+#2
+sentiment_plot <- sentiment_results %>%
+  group_by(filename) %>%
+  summarize(avg_sentiment = mean(value)) %>%
+  ggplot(aes(x = reorder(filename, avg_sentiment), y = avg_sentiment)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 30)) +  # Wraps text
+  labs(title = "Danish Sentiment Analysis", 
+       x = NULL,
+       y = "Average Sentiment Score") +
+  theme_minimal()
+  
+  print(sentiment_plot)
+}
+```
